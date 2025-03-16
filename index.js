@@ -1258,13 +1258,37 @@ function get_summary_style_class(message) {
         return css_exclude_memory
     }
 }
-function update_message_visuals(i, style=true, text=null) {
+
+function get_message_map() {
+    const chat = [...document.getElementById("chat").children];
+
+    const chat_map = new Map();
+
+    for (let i = 0; i < chat.length; i++) {
+        const msg = chat[i];
+
+        if (!!msg.id || msg.length === 0) {
+            continue;
+        }
+
+        chat_map.set(msg.attributes["mesid"].value, msg);
+    }
+
+    return chat_map;
+}
+ 
+
+function update_message_visuals(i, style=true, text=null, element = null) {
     // Update the message visuals according to its current memory status
     // Each message div will have a div added to it with the memory for that message.
     // Even if there is no memory, I add the div because otherwise the spacing changes when the memory is added later.
 
     // div not found (message may not be loaded)
-    let div_element = get_message_div(i);
+    let div_element = $(element);
+    if (!element) {
+        div_element = get_message_div(i);
+    }
+
     if (!div_element) {
         return;
     }
@@ -1317,11 +1341,10 @@ function update_message_visuals(i, style=true, text=null) {
 }
 function update_all_message_visuals() {
     // update the message visuals of each visible message, styled according to the inclusion criteria
-    let chat = getContext().chat
-    let first_displayed_message_id = Number($('#chat').children('.mes').first().attr('mesid'))
-    for (let i=chat.length-1; i >= first_displayed_message_id; i--) {
-        update_message_visuals(i, true);
-    }
+    let chat_map = get_message_map();
+    chat_map.forEach((val, key) => {
+        update_message_visuals(key, true, null, val);
+    });
 }
 function open_edit_memory_input(index) {
     // Allow the user to edit a message summary
