@@ -1259,25 +1259,6 @@ function get_summary_style_class(message) {
     }
 }
 
-function get_message_map() {
-    const chat = [...document.getElementById("chat").children];
-
-    const chat_map = new Map();
-
-    for (let i = 0; i < chat.length; i++) {
-        const msg = chat[i];
-
-        if (!!msg.id || msg.length === 0) {
-            continue;
-        }
-
-        chat_map.set(msg.attributes["mesid"].value, msg);
-    }
-
-    return chat_map;
-}
- 
-
 function update_message_visuals(i, style=true, text=null, element = null) {
     // Update the message visuals according to its current memory status
     // Each message div will have a div added to it with the memory for that message.
@@ -1340,11 +1321,17 @@ function update_message_visuals(i, style=true, text=null, element = null) {
     })
 }
 function update_all_message_visuals() {
-    // update the message visuals of each visible message, styled according to the inclusion criteria
-    let chat_map = get_message_map();
-    chat_map.forEach((val, key) => {
-        update_message_visuals(key, true, null, val);
-    });
+    const chat = [...document.getElementById("chat").children];
+    // update the messget_message_mapage visuals of each visible message, styled according to the inclusion criteria
+
+    chat.forEach((msg) => {
+        if (!!msg.id || msg.length === 0) {
+            return;
+        }
+        const key = msg.attributes["mesid"].value;
+        update_message_visuals(key, true, null, msg);
+    })
+
 }
 function open_edit_memory_input(index) {
     // Allow the user to edit a message summary
