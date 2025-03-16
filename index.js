@@ -1315,6 +1315,12 @@ function update_message_inclusion_flags() {
     let long_limit_reached = false;
     let long_term_end_index = null;  // index of the most recent message that doesn't fit in short-term memory
     let end = chat.length - 1;
+
+    // Keep track of character count. Once character count exceeds token limit, we calculate tokens from the summary text
+    // and set character count to the calculated tokens. Significantly reduces calls to count_tokens.
+    let short_character_count = 0;
+    let short_summary = "";
+
     for (let i = end; i >= 0; i--) {
         let message = chat[i];
 
@@ -1325,15 +1331,30 @@ function update_message_inclusion_flags() {
             continue;
         }
 
-        if (!short_limit_reached) {  // short-term limit hasn't been reached yet
-            let short_memory_text = concatenate_summaries(i, end);  // add up all the summaries down to this point
-            let short_token_size = count_tokens(short_memory_text);
-            if (short_token_size > get_short_token_limit()) {  // over context limit
-                short_limit_reached = true;
-                long_term_end_index = i;  // this is where long-term memory ends and short-term begins
-            } else {  // under context limit
-                store_memory(message, 'include', 'short');  // mark the message as short-term
-                continue
+        if (!short_limit_reached) {  // short-term limit hasn't been reached yet            
+            let new_summary = concatenate_summaries(i, i);
+            short_character_count = short_character_count + new_summary.length + 1;
+            new_summary = short_summary+"\n"+new_summary;
+
+            if (short_character_count > get_short_token_limit()) {
+                let short_token_size = count_tokens(new_summary);
+                if (short_token_size > get_short_token_limit()) {
+                    short_limit_reached = true;
+                    long_term_end_index = i;
+                } else {
+                    if (get_memory(message, 'include') != 'short') {
+                        store_memory(message, 'include', 'short');  // mark the message as short-term
+                    }
+                    short_character_count = short_token_size;
+                    short_summary = new_summary;
+                    continue;
+                }
+            } else {
+                if (get_memory(message, 'include') != 'short') {
+                    store_memory(message, 'include', 'short');  // mark the message as short-term
+                }
+                short_summary = new_summary;
+                continue;
             }
         }
 
