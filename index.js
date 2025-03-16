@@ -2208,9 +2208,26 @@ function check_message_exclusion(message) {
         return false;
     }
 
-    // Check if the message is too short
+    if (!check_message_length(message)) {
+        return false;
+    }
+
+    return true;
+}
+
+function check_message_length(message) {
+    const threshold = get_settings('message_length_threshold');
+    // tokens can't be larger than the number of characters
+    if (message.mes.length < threshold) {
+        return false;
+    }
+    // tokens are roughly 4 chars, its safe to assume a message with threshold*10 is large enough
+    if (message.mes.length > threshold*10) {
+        return true;
+    }
+
     let token_size = count_tokens(message.mes);
-    if (token_size < get_settings('message_length_threshold')) {
+    if (token_size < threshold) {
         return false;
     }
 
@@ -2275,6 +2292,9 @@ function update_message_inclusion_flags() {
     let end = chat.length - 1;
     let summary = ""  // total concatenated summary so far
     let new_summary = ""  // temp summary storage to check token length
+    let short_character_count = 0;
+
+
     for (let i = end; i >= 0; i--) {
         let message = chat[i];
 
@@ -2292,16 +2312,30 @@ function update_message_inclusion_flags() {
             }
 
             new_summary = concatenate_summary(summary, message)  // concatenate this summary
-            let short_token_size = count_tokens(new_summary);
-            if (short_token_size > get_short_token_limit()) {  // over context limit
-                short_limit_reached = true;
-                long_term_end_index = i;  // this is where long-term memory ends and short-term begins
-                summary = ""  // reset summary
-            } else {  // under context limit
-                store_memory(message, 'include', 'short');
+            short_character_count += new_summary.length - summary.length;
+            if (short_character_count > get_short_token_limit()) {
+                let short_token_size = count_tokens(new_summary);
+                if (short_token_size > get_short_token_limit()) {  // over context limit
+                    short_limit_reached = true;
+                    long_term_end_index = i;  // this is where long-term memory ends and short-term begins
+                    summary = ""  // reset summary
+
+                } else {  // under context limit
+                    if (get_memory(message, 'include') != 'short') {
+                        store_memory(message, 'include', 'short');
+                    }
+                    short_character_count = short_token_size;
+                    summary = new_summary
+                    continue
+                }
+            } else {
+                if (get_memory(message, 'include') != 'short') {
+                    store_memory(message, 'include', 'short');
+                }
                 summary = new_summary
                 continue
             }
+
         }
 
         // if the short-term limit has been reached, check the long-term limit
