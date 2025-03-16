@@ -1279,6 +1279,23 @@ function check_message_exclusion(message) {
     }
 
     // Check if the message is too short
+    if (!check_message_length(message)) {
+        return false;
+    }
+
+    return true;
+}
+
+function check_message_length(message) {
+    // tokens can't be larger than the number of characters
+    if (message.mes.length < get_settings('message_length_threshold')) {
+        return false;
+    }
+    // tokens are roughly 4 chars, its safe to assume a message with threshold*10 is large enough
+    if (message.mes.length > get_settings('message_length_threshold')*10) {
+        return true;
+    }
+
     let token_size = count_tokens(message.mes);
     if (token_size < get_settings('message_length_threshold')) {
         return false;
@@ -1286,6 +1303,7 @@ function check_message_exclusion(message) {
 
     return true;
 }
+
 function update_message_inclusion_flags() {
     // Update all messages in the chat, flagging them as short-term or long-term memories to include in the injection.
     // This has to be run on the entire chat since it needs to take the context limits into account.
