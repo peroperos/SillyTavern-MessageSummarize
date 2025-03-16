@@ -346,12 +346,11 @@ function toggle_chat_enabled(id=null, value=null) {
         toastr.warning(`Memory is now disabled for this chat`);
     }
     refresh_memory()
-
+    let chat_map = get_message_map();
     // update the message visuals
-    for (let i=context.chat.length - 1 ; i >= 0; i--) {
-        update_message_visuals(i);
-    }
-
+    chat_map.forEach((val, key) => {
+        update_message_visuals(key, true, null, val);
+    })
     // refresh settings UI
     refresh_settings()
 
@@ -872,7 +871,23 @@ function get_message_div(index) {
     }
     return div;
 }
-function update_message_visuals(i, style=true, text=null) {
+
+function get_message_map() {
+    const chat = [...document.getElementById("chat").children];
+    const chat_map = new Map();
+    for (let i = 0; i < chat.length; i++) {
+        const msg = chat[i];
+        if (!!msg.id || msg.length === 0) {
+            continue;
+        }
+        chat_map.set(msg.attributes["mesid"].value, msg);
+    }
+
+    return chat_map;
+}
+
+
+function update_message_visuals(i, style=true, text=null, element=null) {
     // Update the message visuals according to its current memory status
     // Each message div will have a div added to it with the memory for that message.
     // Even if there is no memory, I add the div because otherwise the spacing changes when the memory is added later.
@@ -884,8 +899,11 @@ function update_message_visuals(i, style=true, text=null) {
     let error_message = get_memory(message, 'error');
     let remember = get_memory(message, 'remember');
     let exclude = get_memory(message, 'exclude');  // force-excluded by user
-    let div_element = get_message_div(i);
+    let div_element = $(element);
 
+    if (!element) {
+        div_element = get_message_div(i);
+    }
     // div not found (message may not be loaded)
     if (!div_element) {
         return;
@@ -1318,10 +1336,12 @@ function update_message_inclusion_flags() {
         store_memory(message, 'include', null);
     }
 
+    let chat_map = get_message_map();
+    chat_map.forEach((val, key) => {
+        update_message_visuals(key, true, null, val);
+    })
     // update the message visuals of each message, styled according to the inclusion criteria
-    for (let i=chat.length-1; i >= 0; i--) {
-        update_message_visuals(i, true);
-    }
+
 }
 function concatenate_summaries(start=null, end=null, include=null, remember=null, exclusion_criteria=true) {
     // Given a start and end, concatenate the summaries of the messages in that range
